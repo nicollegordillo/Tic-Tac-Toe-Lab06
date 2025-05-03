@@ -60,8 +60,11 @@ def experiment_alphabeta(N, k):
             losses += 1
         total_nodes += counter[0]
 
-    print(f"\n=== Resultados Alfa-Beta después de {N} juegos ===")
+    print(f"=== Resultados Alfa-Beta después de {N} juegos ===")
     print(f"Victorias: {wins}")
     print(f"Empates: {ties}")
     print(f"Derrotas: {losses}")
     print(f"Promedio de nodos explorados por juego: {total_nodes / N:.2f}")
+    
+if __name__ == "__main__":
+    experiment_alphabeta(N=100, k=3)
