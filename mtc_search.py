@@ -1,4 +1,5 @@
 import random
+import time
 import numpy as np
 import pandas as pd
 from tic_tac_toe import TicTacToe
@@ -47,6 +48,7 @@ class Mtc_Node:
 def mtc(_root, n_sims, player, c):
     root = Mtc_Node(_root, player, None, c)
     root.si = 1
+    nodes_explored = 0
     for _ in range(n_sims):
         node: Mtc_Node = root
         # 1. Selection
@@ -59,6 +61,7 @@ def mtc(_root, n_sims, player, c):
         # 2. Expansion
         if len(node.moves) != 0:
             node = node.expand()
+            nodes_explored+=1
             
         # 3. Simulation
         current: TicTacToe = node.state
@@ -81,49 +84,79 @@ def mtc(_root, n_sims, player, c):
                 node.wi+=1
             node = node.parent
         # 5. Return most visited
-    return max(root.children, key=lambda c: c.si).move
+        
+    rslt =  max(root.children, key=lambda c: c.si)
+    return (rslt.move, nodes_explored)
 
-def play_mtc(n_sims, c):
+def play_mtc(n_sims, c, oponent):
     game = TicTacToe()
-    player = random.choice(['X','O'])
-    
+    init_player = random.choice(['X','O'])
+    player = init_player
+    subtree_visits = []
     while not game.is_terminal():
         if player =='X':
-            move = mtc(game, n_sims, True, c)
+            move, visits = mtc(game, n_sims, True, c)
+            subtree_visits.append(visits)
         else:
-            move = random.choice(game.available_moves())
+            if oponent == 'rand':
+                move = random.choice(game.available_moves())
+            else: ## Mtc
+                move = mtc(game, n_sims, False, c)
+
         game.make_move(move, player)
         player = 'O' if player == 'X' else 'X'
-    return game.current_winner()
+    winner = game.current_winner()
+    avg_visits = np.mean(subtree_visits)
+    return (winner, init_player, avg_visits)
     
-def experiment(n_sim, c, N):
-    data = {"winner": []}
+def experiment(n_sim, c, N, oponent):
+    data = {"winner": [], "init_player": [], "visits": []}
     for _ in range(N):
-        t = play_mtc(n_sim, c)
-        if t:
-            data["winner"].append(t)
+        w, p, v = play_mtc(n_sim, c, oponent)
+        if w:
+            data["winner"].append(w)
         else: 
             data["winner"].append("tie")
+        data["init_player"].append(p)
+        data["visits"].append(v)
     df = pd.DataFrame(data)
-    counts = df["winner"].value_counts()
-    return counts
+    return df
 
-def value_tune():
-    N = 300
-    sim_opt = [10, 50, 100, 200, 500]
-    c_opt = [0.1, 0.5, 1.0, 1.41, 2.0, 3.0, 5.0]
-    matrix = np.zeros((len(c_opt),len(sim_opt)))
-    for i,c in enumerate(c_opt):
-        for j,n in enumerate(sim_opt):
-            rslt = experiment(n, c, N)["X"] / N
-            matrix[i][j] = rslt
-    plt.imshow(matrix, cmap='viridis', vmin=matrix.min(), vmax=matrix.max())
-    plt.xticks(ticks=np.arange(len(sim_opt)), labels=sim_opt)
-    plt.yticks(ticks=np.arange(len(c_opt)), labels=c_opt)
-    plt.xlabel("Number of Simulations")
-    plt.ylabel("C Value")
-    plt.colorbar(label='Value')
-    plt.title("MTC Win Percentage")
-    plt.show()
+# Best values: {n_sims = 300, c=0.5}
+# oponent can be 'random', 'mtc' and 'minmax'
+def print_experiment():
+    start = time.time()
+    result = experiment(100,2, 300, 'rand')
+    end = time.time()
+    wins = result[result["winner"] == 'X']['winner'].count()
+    loss = result[result["winner"] == 'O']['winner'].count()
+    ties = result[result["winner"] == 'tie']['winner'].count()
+    nodes_explored = result["visits"].mean()
+    avg_time = (end-start)/1000
+    print("Cantidad de Victorias: ",wins)
+    print("Cantidad de Perdidas: ",loss)
+    print("Cantidad de Empates: ",ties)
+    print("Nodos Visitados Promedio: ", nodes_explored)
+    print("Tiempo Promedio (s): ", avg_time)
+    
+    
 
-value_tune()
+print_experiment()
+
+# def value_tune():
+#     N = 300
+#     sim_opt = [10, 50, 100, 200, 500]
+#     c_opt = [0.1, 0.5, 1.0, 1.41, 2.0, 3.0, 5.0]
+#     matrix = np.zeros((len(c_opt),len(sim_opt)))
+#     for i,c in enumerate(c_opt):
+#         for j,n in enumerate(sim_opt):
+#             rslt = experiment(n, c, N)["X"] / N
+#             matrix[i][j] = rslt
+#     plt.imshow(matrix, cmap='viridis', vmin=matrix.min(), vmax=matrix.max())
+#     plt.xticks(ticks=np.arange(len(sim_opt)), labels=sim_opt)
+#     plt.yticks(ticks=np.arange(len(c_opt)), labels=c_opt)
+#     plt.xlabel("Number of Simulations")
+#     plt.ylabel("C Value")
+#     plt.colorbar(label='Value')
+#     plt.title("MTC Win Percentage")
+#     plt.show()
