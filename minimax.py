@@ -60,16 +60,7 @@ def experiment(N, k):
 
     print(f"Wins: {wins}, Ties: {ties}, Losses: {losses}")
 
-if __name__ == "__main__":
-    N = 1000  # Número de juegos
-    k = 3     # Profundidad de minimax
-
-    wins = 0
-    ties = 0
-    losses = 0
-    total_nodes = 0
-
-    def minimax_with_count(game, depth, maximizing_player, counter):
+def minimax_with_count(game, depth, maximizing_player, counter):
         counter[0] += 1  # Contamos los nodos explorados
         if game.is_terminal() or depth == 0:
             return game.evaluate(), None
@@ -96,6 +87,14 @@ if __name__ == "__main__":
                     min_eval = eval
                     best_move = move
             return min_eval, best_move
+if __name__ == "__main__":
+    N = 1000  # Número de juegos
+    k = 3     # Profundidad de minimax
+
+    wins = 0
+    ties = 0
+    losses = 0
+    total_nodes = 0
 
     for _ in range(N):
         game = TicTacToe()
